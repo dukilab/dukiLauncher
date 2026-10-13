@@ -92,7 +92,7 @@ fun <T> DukiChoiceRow(
                     .background(if (on) c.inverseSurface else c.surface)
                     .border(DukiDimens.borderStrong, if (on) c.inverseSurface else c.line)
                     .cutCorner(DukiDimens.cutSm, if (on) c.surface else c.cornerMark)
-                    .semantics { selected = on }
+                    .semantics { this.selected = on }
                     .clickable(role = Role.RadioButton) { onSelect(value) }
                     .padding(horizontal = DukiDimens.space2, vertical = DukiDimens.space2),
                 contentAlignment = Alignment.Center,
