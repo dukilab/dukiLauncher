@@ -1,5 +1,6 @@
 package com.dukilab.launcher.ui.components
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,12 +12,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
@@ -109,7 +113,7 @@ fun <T> DukiChoiceRow(
 }
 
 /**
- * オン／オフの切り替え。丸いスイッチの代わりに、等幅の `ON` `OFF` を直角の枠で示す。
+ * オン／オフの切り替え。直角のスイッチと「オン」「オフ」の文字で、いまの状態を示す。
  */
 @Composable
 fun DukiToggleRow(
@@ -133,23 +137,37 @@ fun DukiToggleRow(
             if (note != null) DukiText(note, DukiTheme.type.caption, color = c.inkMuted)
         }
         Spacer(Modifier.width(DukiDimens.space3))
-        Row(modifier = Modifier.border(DukiDimens.borderStrong, c.lineStrong)) {
-            ToggleCell("ON", checked)
-            ToggleCell("OFF", !checked)
-        }
+        DukiText(
+            if (checked) "オン" else "オフ",
+            DukiTheme.type.tag,
+            color = if (checked) c.ink else c.inkMuted,
+        )
+        Spacer(Modifier.width(DukiDimens.space2))
+        DukiSwitch(checked)
     }
 }
 
+/**
+ * 直角のスイッチ。オンは枠の中が ink で塗られ、つまみが右に寄る。
+ * オフは中が空で、つまみが左（薄い色）。
+ */
 @Composable
-private fun ToggleCell(text: String, on: Boolean) {
+private fun DukiSwitch(checked: Boolean) {
     val c = DukiTheme.colors
+    val knobOffset by animateDpAsState(if (checked) 20.dp else 0.dp, label = "knob")
     Box(
         modifier = Modifier
-            .background(if (on) c.inverseSurface else c.surface)
-            .padding(horizontal = DukiDimens.space2, vertical = DukiDimens.space1),
-        contentAlignment = Alignment.Center,
+            .size(width = 44.dp, height = 24.dp)
+            .border(DukiDimens.borderStrong, c.lineStrong)
+            .background(if (checked) c.inverseSurface else c.surface)
+            .padding(4.dp),
     ) {
-        DukiText(text, DukiTheme.type.tag, color = if (on) c.inverseInk else c.inkMuted)
+        Box(
+            modifier = Modifier
+                .offset(x = knobOffset)
+                .size(16.dp)
+                .background(if (checked) c.inverseInk else c.inkMuted),
+        )
     }
 }
 

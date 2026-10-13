@@ -128,7 +128,7 @@ fun CatalogScreen(onBack: () -> Unit) {
             DukiChoiceRow(listOf(0 to "左", 1 to "中", 2 to "右"), choice, { choice = it })
             Spacer(Modifier.height(DukiDimens.space2))
             var on by remember { mutableStateOf(true) }
-            DukiToggleRow("切り替え", on, { on = it }, note = "等幅の ON / OFF で示します。")
+            DukiToggleRow("切り替え", on, { on = it }, note = "直角のスイッチと文字で示します。")
         }
     }
 }
