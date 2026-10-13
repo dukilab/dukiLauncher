@@ -135,7 +135,8 @@ class LauncherRootTest {
         val maps = rule.onNodeWithContentDescription("Google Maps").fetchSemanticsNode().boundsInRoot
         rule.onNodeWithContentDescription("Chrome").performTouchInput {
             down(center)
-            advanceEventTime(1_000)
+            // 動かさずに長押しが成立するまで待つ（longClick と同じく、その場で1回動かす）。
+            moveBy(Offset.Zero, delayMillis = 1_000)
             val to = maps.center - chrome.topLeft
             repeat(5) { i -> moveTo(center + (to - center) * ((i + 1) / 5f)) }
             up()
@@ -144,7 +145,8 @@ class LauncherRootTest {
 
         rule.onNodeWithContentDescription("Chrome").performTouchInput {
             down(center)
-            advanceEventTime(1_000)
+            // 動かさずに長押しが成立するまで待つ（longClick と同じく、その場で1回動かす）。
+            moveBy(Offset.Zero, delayMillis = 1_000)
             repeat(5) { i -> moveBy(Offset(0f, (i + 1) * 300f)) }
             up()
         }
