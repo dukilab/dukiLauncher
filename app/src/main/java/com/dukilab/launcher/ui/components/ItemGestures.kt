@@ -50,8 +50,9 @@ private suspend fun PointerInputScope.detectItemGestures(
                     break
                 }
                 if (change.changedToUp()) {
-                    r = if (change.isConsumed) PressResult.Cancel else PressResult.Tap
-                    if (r == PressResult.Tap) change.consume()
+                    // 途中でスクロールなどに取られていなければ、離した時点でタップとみなす。
+                    r = PressResult.Tap
+                    change.consume()
                     break
                 }
                 if (change.isConsumed) {

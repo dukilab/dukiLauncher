@@ -1,8 +1,7 @@
 package com.dukilab.launcher.ui.home
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,6 +28,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -77,13 +77,11 @@ fun FolderOverlay(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.45f))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClickLabel = "閉じる",
-            ) {
-                commit()
-                onDismiss()
+            .pointerInput(Unit) {
+                detectTapGestures {
+                    commit()
+                    onDismiss()
+                }
             }
             .testTag("folder"),
         contentAlignment = Alignment.Center,
@@ -93,11 +91,8 @@ fun FolderOverlay(
                 .padding(DukiDimens.space5)
                 .widthIn(max = 360.dp)
                 .fillMaxWidth()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = {},
-                ),
+                // カードの中を押しても閉じないようにする。
+                .pointerInput(Unit) { detectTapGestures { } },
         ) {
             DukiTag(Tags.of("folder", folder.appKeys.size))
             Spacer(Modifier.height(DukiDimens.space1))
