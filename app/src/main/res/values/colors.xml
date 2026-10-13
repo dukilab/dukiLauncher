@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- dukiLab. surface（ライト）。Compose側は ui/theme/DukiColors.kt -->
+    <color name="surface">#F6F8F9</color>
+    <color name="ink">#0B0E11</color>
+</resources>
