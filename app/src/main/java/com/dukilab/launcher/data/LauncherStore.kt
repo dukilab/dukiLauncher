@@ -60,6 +60,7 @@ class LauncherStore(context: Context) {
             gridRows = p[ROWS]?.takeIf { it in LauncherSettings.ROW_CHOICES } ?: d.gridRows,
             swipeDown = enumOr(p[SWIPE_DOWN], d.swipeDown),
             doubleTap = enumOr(p[DOUBLE_TAP], d.doubleTap),
+            showSeconds = p[SECONDS] ?: d.showSeconds,
             autoAddNewApps = p[AUTO_ADD] ?: d.autoAddNewApps,
         )
     }
@@ -72,6 +73,7 @@ class LauncherStore(context: Context) {
         p[ROWS] = s.gridRows
         p[SWIPE_DOWN] = s.swipeDown.name
         p[DOUBLE_TAP] = s.doubleTap.name
+        p[SECONDS] = s.showSeconds
         p[AUTO_ADD] = s.autoAddNewApps
     }
 
@@ -81,6 +83,7 @@ class LauncherStore(context: Context) {
         hidden = LayoutCodec.decodeList(p[HIDDEN]).filter { it.isNotEmpty() }.toSet(),
         known = LayoutCodec.decodeList(p[KNOWN]).filter { it.isNotEmpty() }.toSet(),
         initialized = p[INITIALIZED] ?: false,
+        shortcuts = LayoutCodec.decodeShortcuts(p[SHORTCUTS]),
     )
 
     private fun writeSaved(p: MutablePreferences, s: SavedState) {
@@ -89,6 +92,7 @@ class LauncherStore(context: Context) {
         p[HIDDEN] = LayoutCodec.encodeList(s.hidden.sorted())
         p[KNOWN] = LayoutCodec.encodeList(s.known.sorted())
         p[INITIALIZED] = s.initialized
+        p[SHORTCUTS] = LayoutCodec.encodeShortcuts(s.shortcuts.values)
     }
 
     private inline fun <reified T : Enum<T>> enumOr(name: String?, default: T): T =
@@ -103,10 +107,12 @@ class LauncherStore(context: Context) {
         val SWIPE_DOWN = stringPreferencesKey("swipe_down")
         val DOUBLE_TAP = stringPreferencesKey("double_tap")
         val AUTO_ADD = booleanPreferencesKey("auto_add")
+        val SECONDS = booleanPreferencesKey("show_seconds")
         val LAYOUT = stringPreferencesKey("layout")
         val DOCK = stringPreferencesKey("dock")
         val HIDDEN = stringPreferencesKey("hidden")
         val KNOWN = stringPreferencesKey("known")
         val INITIALIZED = booleanPreferencesKey("initialized")
+        val SHORTCUTS = stringPreferencesKey("shortcuts")
     }
 }

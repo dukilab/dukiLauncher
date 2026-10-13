@@ -76,7 +76,7 @@ import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import kotlin.math.roundToInt
 
-/** 時計を毎分進めるか（画面のテストでは止める）。 */
+/** 時計を進めるか（画面のテストでは止める）。 */
 val LocalClockTicking = staticCompositionLocalOf { true }
 
 /** ホーム画面のアイコンの大きさ。 */
@@ -228,7 +228,7 @@ fun HomeScreen(
             .testTag("home"),
     ) {
         Column(Modifier.fillMaxSize()) {
-            HomeHeader()
+            HomeHeader(showSeconds = state.settings.showSeconds)
             PageTagRow(page = pagerState.currentPage, count = pagerState.pageCount)
             HorizontalPager(
                 state = pagerState,
@@ -285,14 +285,16 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeHeader() {
+private fun HomeHeader(showSeconds: Boolean) {
     val c = DukiTheme.colors
     val context = LocalContext.current
     val ticking = LocalClockTicking.current
-    val now by produceState(LocalDateTime.now(), ticking) {
+    val now by produceState(LocalDateTime.now(), ticking, showSeconds) {
         while (ticking) {
             value = LocalDateTime.now()
-            delay((60 - value.second) * 1000L - value.nano / 1_000_000L + 50)
+            // 次の秒（秒を出さないときは次の分）の変わり目まで待つ。
+            val toNextSecond = 1000L - value.nano / 1_000_000L
+            delay(if (showSeconds) toNextSecond + 20 else (59 - value.second) * 1000L + toNextSecond + 50)
         }
     }
     val is24 = DateFormat.is24HourFormat(context)
@@ -303,7 +305,7 @@ private fun HomeHeader() {
             Column(horizontalAlignment = Alignment.End) {
                 Row(verticalAlignment = Alignment.Bottom) {
                     DukiText(
-                        text = ClockText.time(now, is24),
+                        text = ClockText.time(now, is24, seconds = showSeconds),
                         style = DukiTheme.type.spec.copy(fontSize = DukiTheme.type.h3.fontSize, lineHeight = DukiTheme.type.h3.lineHeight),
                         color = c.headerBarInk,
                         modifier = Modifier.semantics { contentDescription = "時刻" },

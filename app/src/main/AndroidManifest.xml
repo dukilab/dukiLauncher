@@ -41,6 +41,19 @@
             </intent-filter>
         </activity>
 
+        <!-- ほかのアプリの「ホーム画面に追加」（Web ページのショートカットなど）を受け取る。 -->
+        <activity
+            android:name=".AddShortcutActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.content.pm.action.CONFIRM_PIN_SHORTCUT" />
+            </intent-filter>
+        </activity>
+
         <service
             android:name=".system.ScreenOffService"
             android:exported="false"

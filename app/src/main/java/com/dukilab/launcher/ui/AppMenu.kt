@@ -69,17 +69,20 @@ fun menuActions(
     openFolderForRename: (String) -> Unit,
     openSettings: () -> Unit,
     openDrawer: () -> Unit,
+    openAddWeb: () -> Unit,
 ): List<MenuAction> {
     val saved = state.saved
     fun common(key: String): List<MenuAction> = buildList {
+        // ショートカットにはアプリ情報もアンインストールもない。
+        if (state.isShortcut(key)) return@buildList
         add(MenuAction("アプリ情報") { actions.openAppInfo(key) })
         if (state.app(key)?.isSystemApp != true) add(MenuAction("アンインストール") { actions.uninstall(key) })
     }
     return when (target) {
         is MenuTarget.DrawerApp -> buildList {
             val key = target.appKey
-            if (saved.layout.contains(key)) add(MenuAction("ホーム画面から外す") { actions.removeFromHome(key) })
-            else add(MenuAction("ホーム画面に置く") { actions.addToHome(key, currentPage) })
+            add(MenuAction("ホーム画面に置く") { actions.addToHome(key, currentPage) })
+            if (saved.layout.contains(key)) add(MenuAction("ホーム画面からすべて外す") { actions.removeFromHome(key) })
             when {
                 saved.dock.contains(key) -> add(MenuAction("ドックから外す") { actions.removeFromDock(key) })
                 saved.dock.isFull -> add(MenuAction("ドックがいっぱいです（最大${Dock.MAX}個）", enabled = false) {})
@@ -92,6 +95,7 @@ fun menuActions(
         is MenuTarget.HomeApp -> buildList {
             val key = target.appKey
             add(MenuAction("ホーム画面から外す") { actions.removeHomeCell(target.cell) })
+            add(MenuAction("ホーム画面にもう1つ置く") { actions.addToHome(key, target.cell.page) })
             if (!saved.dock.contains(key) && !saved.dock.isFull) {
                 add(MenuAction("ドックへ移す") { actions.moveToDock(target.cell) })
             }
@@ -119,6 +123,7 @@ fun menuActions(
 
         MenuTarget.Background -> listOf(
             MenuAction("アプリ一覧を開く") { openDrawer() },
+            MenuAction("Webページを追加") { openAddWeb() },
             MenuAction("設定を開く") { openSettings() },
         )
     }
@@ -186,6 +191,7 @@ private fun MenuHeader(target: MenuTarget, state: LauncherUiState) {
     val app = appKey?.let { state.app(it) }
     val title = app?.label ?: folder?.name ?: "ホーム画面"
     val tag = when {
+        app != null && state.isShortcut(app.key) -> "SHORTCUT · ${app.packageName}"
         app != null -> app.packageName
         folder != null -> Tags.of("folder", folder.appKeys.size)
         else -> Tags.of("home")

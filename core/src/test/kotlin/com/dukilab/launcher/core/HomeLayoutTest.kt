@@ -25,6 +25,14 @@ class HomeLayoutTest {
     }
 
     @Test
+    fun sameAppCanBePlacedTwiceAndSurvivesSaving() {
+        val l = small.addApp("a").addApp("a", allowDuplicate = true)
+        assertEquals(listOf(HomeItem.App("a"), HomeItem.App("a")), listOf(l.itemAt(Cell(0, 0)), l.itemAt(Cell(0, 1))))
+        assertEquals(l, LayoutCodec.decode(LayoutCodec.encode(l)))
+        assertTrue(l.removeApp("a").items.isEmpty())
+    }
+
+    @Test
     fun moveToEmptyCell() {
         val l = small.addApp("a").move(Cell(0, 0), Cell(0, 3))
         assertNull(l.itemAt(Cell(0, 0)))

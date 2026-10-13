@@ -29,6 +29,7 @@ import com.dukilab.launcher.ui.components.LocalMonochromeIcons
 import com.dukilab.launcher.ui.drawer.AppDrawer
 import com.dukilab.launcher.ui.home.FolderOverlay
 import com.dukilab.launcher.ui.home.HomeScreen
+import com.dukilab.launcher.ui.settings.AddWebShortcutScreen
 import com.dukilab.launcher.ui.settings.HiddenAppsScreen
 import com.dukilab.launcher.ui.settings.SettingsScreen
 import com.dukilab.launcher.ui.theme.DukiTheme
@@ -36,7 +37,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 
 /** ホーム画面の上に重ねて開く画面。 */
-enum class Page { NONE, SETTINGS, HIDDEN_APPS, CATALOG }
+enum class Page { NONE, SETTINGS, HIDDEN_APPS, CATALOG, ADD_WEB }
 
 /** 開いている画面のまとまり（どれが一番上か）。 */
 class LauncherNav {
@@ -151,6 +152,8 @@ fun LauncherRoot(
                             actions.launch(it)
                             nav.folderId = null
                         },
+                        onReorder = { from, to -> actions.reorderInFolder(folder.id, from, to) },
+                        onTakeOut = { actions.takeOutOfFolder(folder.id, it) },
                         onLongPress = { nav.menu = MenuTarget.FolderApp(folder.id, it) },
                         onDismiss = { nav.folderId = null },
                     )
@@ -163,10 +166,15 @@ fun LauncherRoot(
                         actions = actions,
                         onOpenHiddenApps = { nav.page = Page.HIDDEN_APPS },
                         onOpenCatalog = { nav.page = Page.CATALOG },
+                        onOpenAddWeb = { nav.page = Page.ADD_WEB },
                         onBack = { nav.page = Page.NONE },
                     )
                     Page.HIDDEN_APPS -> HiddenAppsScreen(state, actions, onBack = { nav.page = Page.SETTINGS })
                     Page.CATALOG -> CatalogScreen(onBack = { nav.page = Page.SETTINGS })
+                    Page.ADD_WEB -> AddWebShortcutScreen(
+                        onAdd = { url, label -> actions.addWebShortcut(url, label, currentPage) },
+                        onBack = { nav.page = Page.NONE },
+                    )
                 }
 
                 val menu = nav.menu
@@ -185,6 +193,10 @@ fun LauncherRoot(
                                 nav.page = Page.SETTINGS
                             },
                             openDrawer = { nav.openDrawer(false) },
+                            openAddWeb = {
+                                nav.drawerOpen = false
+                                nav.page = Page.ADD_WEB
+                            },
                         ),
                         onDismiss = { nav.menu = null },
                     )

@@ -34,7 +34,6 @@ object LayoutCodec {
         val columns = head[1].toIntOrNull()?.takeIf { it > 0 } ?: return HomeLayout()
         val rows = head[2].toIntOrNull()?.takeIf { it > 0 } ?: return HomeLayout()
         val items = mutableMapOf<Cell, HomeItem>()
-        val seen = mutableSetOf<String>()
         for (line in lines.drop(1)) {
             val f = line.split('\t').map(::unescape)
             if (f.size < 4) continue
@@ -44,10 +43,10 @@ object LayoutCodec {
             val cell = Cell(page, index)
             if (cell in items) continue
             when (f[0]) {
-                "A" -> if (seen.add(f[3])) items[cell] = HomeItem.App(f[3])
+                "A" -> items[cell] = HomeItem.App(f[3])
                 "F" -> {
                     if (f.size < 5) continue
-                    val keys = f.drop(5).filter { seen.add(it) }
+                    val keys = f.drop(5).filter { it.isNotEmpty() }
                     when (keys.size) {
                         0 -> Unit
                         1 -> items[cell] = HomeItem.App(keys.single())
@@ -64,6 +63,24 @@ object LayoutCodec {
 
     fun decodeList(text: String?): List<String> =
         if (text.isNullOrEmpty()) emptyList() else text.split('\t').map(::unescape)
+
+    /**
+     * ショートカットを保存用の文字列にする。1件1行：
+     * `S キー 名前 パッケージ ID ユーザー URL`
+     */
+    fun encodeShortcuts(shortcuts: Collection<Shortcut>): String =
+        shortcuts.sortedBy { it.key }.joinToString("\n") { sc ->
+            buildString { join("S", sc.key, sc.label, sc.packageName, sc.shortcutId, sc.userSerial, sc.url) }
+        }
+
+    fun decodeShortcuts(text: String?): Map<String, Shortcut> {
+        if (text.isNullOrBlank()) return emptyMap()
+        return text.split('\n').mapNotNull { line ->
+            val f = line.split('\t').map(::unescape)
+            if (f.size < 7 || f[0] != "S" || !Shortcut.isShortcutKey(f[1])) return@mapNotNull null
+            Shortcut(f[1], f[2], f[3], f[4], f[5].toLongOrNull() ?: 0L, f[6])
+        }.associateBy { it.key }
+    }
 
     private fun StringBuilder.join(vararg parts: Any) {
         parts.forEachIndexed { i, p ->

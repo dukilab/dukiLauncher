@@ -18,16 +18,22 @@ import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import com.dukilab.launcher.BuildConfig
 import com.dukilab.launcher.core.AppEntry
 import com.dukilab.launcher.core.AppSearch
 import com.dukilab.launcher.core.DoubleTapAction
 import com.dukilab.launcher.core.LauncherSettings
+import com.dukilab.launcher.core.Shortcut
 import com.dukilab.launcher.core.SwipeDownAction
 import com.dukilab.launcher.core.Tags
 import com.dukilab.launcher.core.ThemeMode
@@ -41,6 +47,7 @@ import com.dukilab.launcher.ui.components.DukiChoiceRow
 import com.dukilab.launcher.ui.components.DukiHeader
 import com.dukilab.launcher.ui.components.DukiTag
 import com.dukilab.launcher.ui.components.DukiText
+import com.dukilab.launcher.ui.components.DukiTextField
 import com.dukilab.launcher.ui.components.DukiToggleRow
 import com.dukilab.launcher.ui.components.gridBackground
 import com.dukilab.launcher.ui.components.itemGestures
@@ -103,6 +110,7 @@ fun SettingsScreen(
     actions: LauncherActions,
     onOpenHiddenApps: () -> Unit,
     onOpenCatalog: () -> Unit,
+    onOpenAddWeb: () -> Unit,
     onBack: () -> Unit,
 ) {
     val s = state.settings
@@ -155,6 +163,11 @@ fun SettingsScreen(
                 checked = s.showLabels,
                 onCheckedChange = { on -> actions.updateSettings { it.copy(showLabels = on) } },
             )
+            DukiToggleRow(
+                title = "時計に秒を出す",
+                checked = s.showSeconds,
+                onCheckedChange = { on -> actions.updateSettings { it.copy(showSeconds = on) } },
+            )
         }
 
         DukiCard(Modifier.fillMaxWidth()) {
@@ -204,6 +217,8 @@ fun SettingsScreen(
                 onClick = onOpenHiddenApps,
                 style = DukiButtonStyle.Outline,
             )
+            Spacer(Modifier.height(DukiDimens.space2))
+            DukiButton(text = "Webページを追加", onClick = onOpenAddWeb, style = DukiButtonStyle.Outline)
         }
 
         DukiCard(Modifier.fillMaxWidth()) {
@@ -225,6 +240,63 @@ fun SettingsScreen(
                 DukiButton("ホームアプリを選び直す", onClick = actions::openHomeSettings, style = DukiButtonStyle.Outline)
             }
         }
+    }
+}
+
+/**
+ * Web ページのショートカットを作る画面。URL と名前を入れて、ホーム画面に置く。
+ * Chrome などの「ホーム画面に追加」からも置ける（そちらはアイコン付き）。
+ */
+@Composable
+fun AddWebShortcutScreen(onAdd: (url: String, label: String) -> Unit, onBack: () -> Unit) {
+    val c = DukiTheme.colors
+    var url by rememberSaveable { mutableStateOf("") }
+    var label by rememberSaveable { mutableStateOf("") }
+    var error by rememberSaveable { mutableStateOf(false) }
+    fun submit() {
+        val normalized = Shortcut.normalizeUrl(url)
+        if (normalized == null) {
+            error = true
+            return
+        }
+        onAdd(normalized, label.trim().ifEmpty { Shortcut.labelFromUrl(normalized) })
+        onBack()
+    }
+    SubScreen(title = "Webページを追加", onBack = onBack, testTag = "add-web") {
+        DukiCard(Modifier.fillMaxWidth()) {
+            DukiTag(Tags.of("web"))
+            DukiText("ホーム画面に Web ページを置く", DukiTheme.type.h3)
+            SettingLabel("URL")
+            DukiTextField(
+                value = url,
+                onValueChange = {
+                    url = it
+                    error = false
+                },
+                placeholder = "https://example.com",
+                imeAction = ImeAction.Next,
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "URL" },
+            )
+            if (error) {
+                Spacer(Modifier.height(DukiDimens.space1))
+                DukiText("http:// か https:// で始まる URL を入れてください", DukiTheme.type.caption, color = c.ink)
+            }
+            SettingLabel("名前")
+            DukiTextField(
+                value = label,
+                onValueChange = { label = it },
+                placeholder = "空ならドメイン名",
+                onImeAction = ::submit,
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "名前" },
+            )
+            Spacer(Modifier.height(DukiDimens.space4))
+            DukiButton("ホーム画面に置く", onClick = ::submit, enabled = url.isNotBlank())
+        }
+        DukiText(
+            "Chrome でページを開き、メニューの「ホーム画面に追加」を選んでも置けます。そのときはサイトのアイコンが付きます。",
+            DukiTheme.type.bodySm,
+            color = c.inkMuted,
+        )
     }
 }
 

@@ -63,9 +63,12 @@ data class HomeLayout(
         return Cell(maxOf(pageCount, fromPage), 0)
     }
 
-    /** アプリをホーム画面に追加する。すでにあれば何もしない。 */
-    fun addApp(appKey: String, preferredPage: Int = 0): HomeLayout {
-        if (contains(appKey)) return this
+    /**
+     * アプリをホーム画面の空きマスに追加する。
+     * [allowDuplicate] でなければ、すでに置いてあるときは何もしない（新しいアプリの自動配置など）。
+     */
+    fun addApp(appKey: String, preferredPage: Int = 0, allowDuplicate: Boolean = false): HomeLayout {
+        if (!allowDuplicate && contains(appKey)) return this
         val cell = firstEmptyCell(preferredPage.coerceAtLeast(0))
         return copy(items = items + (cell to HomeItem.App(appKey)))
     }

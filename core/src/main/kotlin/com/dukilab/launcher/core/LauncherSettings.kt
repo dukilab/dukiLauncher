@@ -20,6 +20,8 @@ data class LauncherSettings(
     val gridRows: Int = HomeLayout.DEFAULT_ROWS,
     val swipeDown: SwipeDownAction = SwipeDownAction.NOTIFICATIONS,
     val doubleTap: DoubleTapAction = DoubleTapAction.NONE,
+    /** ホーム画面の時計に秒を出す。 */
+    val showSeconds: Boolean = true,
     /** 新しく入れたアプリをホーム画面に自動で置く。 */
     val autoAddNewApps: Boolean = true,
 ) {

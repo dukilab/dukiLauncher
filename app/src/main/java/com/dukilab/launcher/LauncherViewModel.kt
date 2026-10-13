@@ -7,6 +7,7 @@ import com.dukilab.launcher.core.Cell
 import com.dukilab.launcher.core.HomeItem
 import com.dukilab.launcher.core.LauncherSettings
 import com.dukilab.launcher.core.SavedState
+import com.dukilab.launcher.core.Shortcut
 import com.dukilab.launcher.data.AppRepository
 import com.dukilab.launcher.data.IconLoader
 import com.dukilab.launcher.data.LauncherStore
@@ -28,8 +29,8 @@ import kotlinx.coroutines.launch
 class LauncherViewModel(application: Application) : AndroidViewModel(application), LauncherActions {
     private val repo = AppRepository(application)
     private val store = LauncherStore(application)
-    private val system = SystemBridge(application, repo)
-    val icons = IconLoader(application, repo)
+    private val system = SystemBridge(application, repo, ::shortcut)
+    val icons = IconLoader(application, repo, ::shortcut)
 
     private val installed = MutableStateFlow<Map<String, com.dukilab.launcher.core.AppEntry>?>(null)
     private val defaultHome = MutableStateFlow(true)
@@ -77,15 +78,22 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         _homePressed.tryEmit(Unit)
     }
 
+    private fun shortcut(key: String): Shortcut? = state.value.saved.shortcuts[key]
+
     private fun edit(transform: (SavedState) -> SavedState) {
-        viewModelScope.launch { store.updateSaved(transform) }
+        viewModelScope.launch { store.updateSaved { transform(it).dropUnusedShortcuts() } }
     }
 
     override fun launch(appKey: String) = system.launch(appKey)
     override fun openAppInfo(appKey: String) = system.openAppInfo(appKey)
     override fun uninstall(appKey: String) = system.uninstall(appKey)
 
-    override fun addToHome(appKey: String, page: Int) = edit { it.copy(layout = it.layout.addApp(appKey, page)) }
+    override fun addToHome(appKey: String, page: Int) =
+        edit { it.copy(layout = it.layout.addApp(appKey, page, allowDuplicate = true)) }
+
+    override fun addWebShortcut(url: String, label: String, page: Int) = edit {
+        it.addShortcut(Shortcut(Shortcut.webKey(System.currentTimeMillis().toString(36)), label, url = url), page)
+    }
     override fun removeFromHome(appKey: String) = edit { it.copy(layout = it.layout.removeApp(appKey)) }
     override fun removeHomeCell(cell: Cell) = edit { it.copy(layout = it.layout.removeAt(cell)) }
     override fun moveHomeItem(from: Cell, to: Cell) = edit { it.copy(layout = it.layout.move(from, to)) }
@@ -101,6 +109,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     override fun takeOutOfFolder(folderId: String, appKey: String) =
         edit { it.copy(layout = it.layout.takeOutOfFolder(folderId, appKey)) }
+
+    override fun reorderInFolder(folderId: String, from: Int, to: Int) =
+        edit { it.copy(layout = it.layout.reorderInFolder(folderId, from, to)) }
 
     override fun dissolveFolder(folderId: String) = edit { it.copy(layout = it.layout.dissolveFolder(folderId)) }
 

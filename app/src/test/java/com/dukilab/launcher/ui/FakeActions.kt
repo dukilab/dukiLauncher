@@ -12,12 +12,14 @@ class FakeActions : LauncherActions {
     override fun openAppInfo(appKey: String) { calls += "info:$appKey" }
     override fun uninstall(appKey: String) { calls += "uninstall:$appKey" }
     override fun addToHome(appKey: String, page: Int) { calls += "addToHome:$appKey:$page" }
+    override fun addWebShortcut(url: String, label: String, page: Int) { calls += "addWeb:$url:$label:$page" }
     override fun removeFromHome(appKey: String) { calls += "removeFromHome:$appKey" }
     override fun removeHomeCell(cell: Cell) { calls += "removeHomeCell:${cell.page}:${cell.index}" }
     override fun moveHomeItem(from: Cell, to: Cell) { calls += "move:${from.index}->${to.index}" }
     override fun moveToDock(from: Cell) { calls += "moveToDock:${from.index}" }
     override fun renameFolder(folderId: String, name: String) { calls += "rename:$folderId:$name" }
     override fun takeOutOfFolder(folderId: String, appKey: String) { calls += "takeOut:$folderId:$appKey" }
+    override fun reorderInFolder(folderId: String, from: Int, to: Int) { calls += "reorder:$folderId:$from->$to" }
     override fun dissolveFolder(folderId: String) { calls += "dissolve:$folderId" }
     override fun addToDock(appKey: String) { calls += "addToDock:$appKey" }
     override fun removeFromDock(appKey: String) { calls += "removeFromDock:$appKey" }

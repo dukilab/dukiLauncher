@@ -4,6 +4,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
@@ -18,6 +20,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.dukilab.launcher.core.Cell
 import com.dukilab.launcher.core.HomeItem
 import com.dukilab.launcher.core.HomeLayout
+import com.dukilab.launcher.core.Shortcut
 import com.dukilab.launcher.core.ThemeMode
 import com.dukilab.launcher.ui.components.IconSource
 import com.dukilab.launcher.ui.home.LocalClockTicking
@@ -120,6 +123,68 @@ class LauncherRootTest {
         assertEquals(listOf("launch:${TestData.maps.key}"), actions.calls)
         rule.runOnIdle { assertNull("フォルダが閉じていない", nav.folderId) }
         rule.onNodeWithTag("folder").assertDoesNotExist()
+    }
+
+    @Test
+    fun dragInFolderReordersAndDragOutTakesOut() {
+        val folder = HomeItem.Folder("f1", "ツール", listOf(TestData.chrome.key, TestData.maps.key))
+        state = TestData.state(layout = HomeLayout(4, 5, mapOf(Cell(0, 1) to folder)))
+        show()
+        rule.runOnIdle { nav.openFolder("f1") }
+        val chrome = rule.onNodeWithContentDescription("Chrome").fetchSemanticsNode().boundsInRoot
+        val maps = rule.onNodeWithContentDescription("Google Maps").fetchSemanticsNode().boundsInRoot
+        rule.onNodeWithContentDescription("Chrome").performTouchInput {
+            down(center)
+            advanceEventTime(1_000)
+            val to = maps.center - chrome.topLeft
+            repeat(5) { i -> moveTo(center + (to - center) * ((i + 1) / 5f)) }
+            up()
+        }
+        assertEquals(listOf("reorder:f1:0->1"), actions.calls)
+
+        rule.onNodeWithContentDescription("Chrome").performTouchInput {
+            down(center)
+            advanceEventTime(1_000)
+            repeat(5) { i -> moveBy(Offset(0f, (i + 1) * 300f)) }
+            up()
+        }
+        assertEquals("takeOut:f1:${TestData.chrome.key}", actions.calls.last())
+    }
+
+    @Test
+    fun homeAppCanBePlacedAgain() {
+        show()
+        rule.onNodeWithContentDescription("カメラ").performTouchInput { longClick() }
+        rule.onNodeWithText("ホーム画面にもう1つ置く").performClick()
+        assertEquals(listOf("addToHome:${TestData.camera.key}:0"), actions.calls)
+    }
+
+    @Test
+    fun webShortcutFromUrl() {
+        show()
+        rule.runOnIdle { nav.page = Page.ADD_WEB }
+        rule.onNodeWithTag("add-web").assertIsDisplayed()
+        rule.onNodeWithContentDescription("URL").performTextInput("javascript:x")
+        rule.onNodeWithText("ホーム画面に置く").performClick()
+        rule.onNodeWithText("http:// か https:// で始まる URL を入れてください").assertExists()
+        rule.onNodeWithContentDescription("URL").performTextClearance()
+        rule.onNodeWithContentDescription("URL").performTextInput("example.com/news")
+        rule.onNodeWithText("ホーム画面に置く").performClick()
+        assertEquals(listOf("addWeb:https://example.com/news:example.com:0"), actions.calls)
+        rule.runOnIdle { assertEquals(Page.NONE, nav.page) }
+    }
+
+    @Test
+    fun shortcutOnHomeShowsWithoutAppInfo() {
+        val web = Shortcut(Shortcut.webKey("w1"), "ニュース", url = "https://example.com")
+        val base = TestData.state()
+        state = base.copy(saved = base.saved.addShortcut(web))
+        show()
+        rule.onNodeWithContentDescription("ニュース").performClick()
+        assertEquals(listOf("launch:${web.key}"), actions.calls)
+        rule.onNodeWithContentDescription("ニュース").performTouchInput { longClick() }
+        rule.onNodeWithText("ホーム画面から外す").assertIsDisplayed()
+        rule.onNodeWithText("アプリ情報").assertDoesNotExist()
     }
 
     @Test

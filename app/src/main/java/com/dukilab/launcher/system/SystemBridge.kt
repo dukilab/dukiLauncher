@@ -8,14 +8,20 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import android.widget.Toast
+import com.dukilab.launcher.core.Shortcut
 import com.dukilab.launcher.data.AppRepository
 
 /** Android の機能を呼び出す（アプリの起動・アプリ情報・アンインストール・通知パネルなど）。 */
-class SystemBridge(context: Context, private val repo: AppRepository) {
+class SystemBridge(
+    context: Context,
+    private val repo: AppRepository,
+    private val shortcutOf: (String) -> Shortcut?,
+) {
     private val appContext = context.applicationContext
     private val launcherApps = appContext.getSystemService(android.content.pm.LauncherApps::class.java)
 
     fun launch(appKey: String) {
+        shortcutOf(appKey)?.let { return launchShortcut(it) }
         val component = repo.component(appKey) ?: return toast("アプリが見つかりません")
         val user = repo.user(appKey) ?: return toast("アプリが見つかりません")
         try {
@@ -24,6 +30,24 @@ class SystemBridge(context: Context, private val repo: AppRepository) {
             toast("アプリを開けませんでした")
         } catch (e: SecurityException) {
             toast("アプリを開けませんでした")
+        }
+    }
+
+    private fun launchShortcut(sc: Shortcut) {
+        if (sc.isWeb) {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(sc.url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            start(intent, "ページを開けませんでした")
+            return
+        }
+        val user = repo.userForSerial(sc.userSerial) ?: return toast("ショートカットを開けませんでした")
+        try {
+            launcherApps.startShortcut(sc.packageName, sc.shortcutId, null, null, user)
+        } catch (e: ActivityNotFoundException) {
+            toast("ショートカットを開けませんでした")
+        } catch (e: IllegalStateException) {
+            toast("ショートカットを開けませんでした")
+        } catch (e: SecurityException) {
+            toast("ショートカットを開くには、dukiLauncher を既定のホームアプリにしてください")
         }
     }
 

@@ -54,6 +54,9 @@ class AppRepository(context: Context) {
 
     fun isMainUser(key: String): Boolean = infos[key]?.user == Process.myUserHandle()
 
+    /** 保存しておいたユーザー番号から、そのユーザーを引く（いなければ null）。 */
+    fun userForSerial(serial: Long): UserHandle? = userManager.getUserForSerialNumber(serial)
+
     private fun load(): List<AppEntry> {
         val result = mutableListOf<AppEntry>()
         val fresh = mutableMapOf<String, LauncherActivityInfo>()

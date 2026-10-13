@@ -46,6 +46,7 @@ class CodecAndStateTest {
         assertEquals("07:05", ClockText.time(t, true))
         assertEquals("7:05", ClockText.time(t, false))
         assertEquals("12:00", ClockText.time(t.withHour(0).withMinute(0), false))
+        assertEquals("07:05:09", ClockText.time(t.withSecond(9), true, seconds = true))
         assertEquals("2026.10.13 TUE", ClockText.dateLine(t))
         assertEquals("APPS · 042", Tags.of("apps", 42))
     }
@@ -82,5 +83,46 @@ class CodecAndStateTest {
         val s0 = SavedState().reconcile(setOf("a#0"), autoAdd = false)
         val s = s0.copy(layout = s0.layout.addApp("a#0"))
         assertEquals(s, s.reconcile(emptySet(), autoAdd = true))
+    }
+
+    @Test
+    fun shortcutsRoundTrip() {
+        val list = listOf(
+            Shortcut(Shortcut.pinnedKey("com.android.chrome", "id\t1", 0), "ニュース", "com.android.chrome", "id\t1", 0),
+            Shortcut(Shortcut.webKey("w1"), "Example", url = "https://example.com/a?b=1"),
+        )
+        assertEquals(list.associateBy { it.key }, LayoutCodec.decodeShortcuts(LayoutCodec.encodeShortcuts(list)))
+        assertTrue(LayoutCodec.decodeShortcuts("").isEmpty())
+    }
+
+    @Test
+    fun shortcutsStayWhileTheirAppIsInstalled() {
+        val chrome = Shortcut(Shortcut.pinnedKey("com.chrome", "s1", 0), "記事", "com.chrome", "s1", 0)
+        val web = Shortcut(Shortcut.webKey("w1"), "Example", url = "https://example.com")
+        val s0 = SavedState().reconcile(setOf("com.chrome/Main#0", "a/Main#0"), autoAdd = false)
+            .addShortcut(chrome).addShortcut(web)
+        val kept = s0.reconcile(setOf("com.chrome/Main#0", "a/Main#0"), autoAdd = false)
+        assertTrue(kept.layout.contains(chrome.key) && kept.layout.contains(web.key))
+        val removed = s0.reconcile(setOf("a/Main#0"), autoAdd = false)
+        assertFalse(removed.layout.contains(chrome.key))
+        assertFalse(chrome.key in removed.shortcuts)
+        assertTrue(removed.layout.contains(web.key))
+    }
+
+    @Test
+    fun unusedShortcutsAreForgotten() {
+        val web = Shortcut(Shortcut.webKey("w1"), "Example", url = "https://example.com")
+        val s = SavedState().addShortcut(web)
+        val cell = s.layout.items.keys.single()
+        assertTrue(s.copy(layout = s.layout.removeAt(cell)).dropUnusedShortcuts().shortcuts.isEmpty())
+    }
+
+    @Test
+    fun urlsAreNormalized() {
+        assertEquals("https://example.com", Shortcut.normalizeUrl(" example.com "))
+        assertEquals("http://a.jp/x", Shortcut.normalizeUrl("http://a.jp/x"))
+        assertEquals(null, Shortcut.normalizeUrl("javascript:alert(1)"))
+        assertEquals(null, Shortcut.normalizeUrl("a b"))
+        assertEquals("example.com", Shortcut.labelFromUrl("https://www.example.com/path"))
     }
 }
