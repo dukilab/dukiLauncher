@@ -22,6 +22,7 @@ import com.dukilab.launcher.core.ThemeMode
 import com.dukilab.launcher.ui.components.IconSource
 import com.dukilab.launcher.ui.home.LocalClockTicking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -117,6 +118,7 @@ class LauncherRootTest {
         rule.onNodeWithTag("folder").assertIsDisplayed()
         rule.onNodeWithContentDescription("Google Maps").performClick()
         assertEquals(listOf("launch:${TestData.maps.key}"), actions.calls)
+        rule.runOnIdle { assertNull("フォルダが閉じていない", nav.folderId) }
         rule.onNodeWithTag("folder").assertDoesNotExist()
     }
 
