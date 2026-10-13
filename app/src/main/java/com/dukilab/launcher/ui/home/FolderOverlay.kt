@@ -114,32 +114,31 @@ fun FolderOverlay(
         if (name.trim() != folder.name) rename(name)
     }
 
-    val from = drag.from
-    val dragging = from != null && from in keys.indices
-    val outside = dragging && !cardBounds.contains(drag.pointer)
-    // 指に一番近いマス（カードの外なら動かさない）。
-    val hover = if (dragging && !outside) {
-        slots.filterKeys { it in keys.indices }.minByOrNull { (it.value.center - drag.pointer).getDistanceSquared() }?.key ?: from
-    } else {
-        from
-    }
+    // 指の位置から、カードの外か・一番近いマスはどこかを求める（離した瞬間も最新の位置で判断する）。
+    fun isOutside(): Boolean = !cardBounds.contains(drag.pointer)
+    fun hoverSlot(from: Int): Int =
+        if (isOutside()) from
+        else slots.filterKeys { it in keys.indices }.minByOrNull { (it.value.center - drag.pointer).getDistanceSquared() }?.key ?: from
+
+    val from = drag.from?.takeIf { it in keys.indices }
+    val dragging = from != null
+    val outside = from != null && isOutside()
+    val hover = from?.let(::hoverSlot)
     // 動かしている途中は、離したらこうなるという並びで見せる。
     val order = keys.indices.toMutableList().apply {
-        if (dragging && hover != null && hover != from) add(hover, removeAt(from!!))
+        if (from != null && hover != null && hover != from) add(hover, removeAt(from))
     }
 
     fun finishDrag() {
         val index = drag.from ?: return
-        val key = keys.getOrNull(index)
-        val moved = (drag.pointer - drag.start).getDistance() > slop
-        val target = hover
-        val out = outside
         drag.from = null
-        if (key == null) return
+        val key = keys.getOrNull(index) ?: return
+        val moved = (drag.pointer - drag.start).getDistance() > slop
+        val target = hoverSlot(index)
         when {
             !moved -> onLongPress(key)
-            out -> onTakeOut(key)
-            target != null && target != index -> onReorder(index, target)
+            isOutside() -> onTakeOut(key)
+            target != index -> onReorder(index, target)
         }
     }
 
